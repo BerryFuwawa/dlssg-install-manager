@@ -53,6 +53,10 @@ static class UiTests
                 form.DisplayUpdate(null); Check(!update.Dot, "red update light clears at current version");
                 RoundButton repository = Field<RoundButton>(form, "repositoryLink");
                 Check(repository.Text == "GitHub 仓库 ↗" && Convert.ToString(repository.Tag) == GuiUpdater.Repository, "sidebar opens owner repository instead of upstream");
+                form.ApplyDpiForTest(form.LayoutDpi, new Size(3840, 2400));
+                using (var bitmap = new Bitmap(32, 32))
+                using (var graphics = Graphics.FromImage(bitmap))
+                    Check(graphics.MeasureString("DPI", Field<CheckBox>(form, "autoUpdate").Font).Width > 0, "identical DPI refresh keeps checkbox font valid");
                 foreach (int dpi in new[] { 96, 120, 144, 168, 192, 240, 288 })
                 {
                     form.ApplyDpiForTest(dpi, new Size(3840, 2400)); Application.DoEvents();
@@ -67,7 +71,6 @@ static class UiTests
                     bool everyPageFits = true;
                     for (int page = 0; page < nav.Count; page++)
                     {
-                        Console.WriteLine("[DEBUG-ci-dpi] enter dpi=" + dpi + " page=" + page);
                         nav[page].PerformClick(); Application.DoEvents();
                         everyPageFits &= ButtonsFit(Field<Panel>(form, pages[page]));
                         if (dpi == 144 && page == 2)

@@ -31,6 +31,7 @@ static class Screenshots
         {
             if (args.Length != 1) throw new ArgumentException("Expected screenshot output directory.");
             Directory.CreateDirectory(args[0]);
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             using (var form = new MainForm(true))

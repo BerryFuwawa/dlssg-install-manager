@@ -81,6 +81,30 @@ namespace DlssgManager
         {
             Font font = spec.Create(scale); allocatedFonts.Add(font); return font;
         }
+        void ReleaseUnusedFonts(Font[] previous)
+        {
+            var used = new List<Font>();
+            foreach (Metric metric in metrics)
+            {
+                used.Add(metric.Control.Font);
+                var grid = metric.Control as DataGridView;
+                if (grid != null)
+                {
+                    used.Add(grid.ColumnHeadersDefaultCellStyle.Font);
+                    used.Add(grid.DefaultCellStyle.Font);
+                }
+            }
+            Font[] owned = previous.Concat(allocatedFonts).ToArray();
+            allocatedFonts.Clear();
+            foreach (Font font in owned)
+            {
+                // WinForms can ignore an equal-valued Font assignment. Keep the
+                // old instance if a control still owns it; dispose unused new
+                // instances too, rather than leaking them on identical DPI.
+                if (used.Any(current => Object.ReferenceEquals(current, font))) allocatedFonts.Add(font);
+                else font.Dispose();
+            }
+        }
         public void Apply(int dpi, Rectangle bounds, Rectangle workArea)
         {
             float scale = dpi / 96f;
@@ -144,7 +168,7 @@ namespace DlssgManager
             {
                 foreach (Metric metric in metrics) metric.Control.ResumeLayout(true);
                 form.RefreshDpiLayout();
-                foreach (Font font in previousFonts) font.Dispose();
+                ReleaseUnusedFonts(previousFonts);
             }
         }
         public void Dispose() { foreach (Font font in allocatedFonts) font.Dispose(); allocatedFonts.Clear(); }
