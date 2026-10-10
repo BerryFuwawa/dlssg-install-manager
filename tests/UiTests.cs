@@ -26,6 +26,7 @@ static class UiTests
     [STAThread]
     static int Main(string[] args)
     {
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         Application.EnableVisualStyles();
         try
         {
@@ -66,6 +67,7 @@ static class UiTests
                     bool everyPageFits = true;
                     for (int page = 0; page < nav.Count; page++)
                     {
+                        Console.WriteLine("[DEBUG-ci-dpi] enter dpi=" + dpi + " page=" + page);
                         nav[page].PerformClick(); Application.DoEvents();
                         everyPageFits &= ButtonsFit(Field<Panel>(form, pages[page]));
                         if (dpi == 144 && page == 2)
