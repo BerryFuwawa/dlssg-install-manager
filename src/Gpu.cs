@@ -71,8 +71,14 @@ namespace DlssgManager
             using (var search = new ManagementObjectSearcher("SELECT Name,DriverVersion FROM Win32_VideoController"))
             using (var result = search.Get())
                 foreach (ManagementObject item in result)
-                    names.Add(Convert.ToString(item["Name"]) + "  ·  驱动 " + Convert.ToString(item["DriverVersion"]));
-            return names.Count == 0 ? "未读取到显卡信息" : String.Join("\r\n", names);
+                    names.Add(Convert.ToString(item["Name"]) + "  ·  驱动 " + Convert.ToString(item["DriverVersion"]) + "\r\n" + GraphicsSupport(Convert.ToString(item["Name"])));
+            return (names.Count == 0 ? "未读取到显卡信息" : String.Join("\r\n", names)) + "\r\n上游 0.4.x 要求 NVIDIA R580 或更新驱动。";
+        }
+        public static string GraphicsSupport(string name)
+        {
+            if (Regex.IsMatch(name ?? "", @"\bRTX\s*40[5-9]\d\b", RegexOptions.IgnoreCase)) return "RTX 40 系 · 实验性支持（PTX 路线）";
+            if (Regex.IsMatch(name ?? "", @"\bRTX\s*(20|30)[5-9]\d\b", RegexOptions.IgnoreCase)) return "RTX 20 / 30 系 · 上游提供适配";
+            return "显卡兼容性请核对上游说明；不会据此自动判断游戏兼容性。";
         }
     }
     public static class GpuDetector

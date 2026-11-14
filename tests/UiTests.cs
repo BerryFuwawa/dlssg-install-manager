@@ -42,9 +42,9 @@ static class UiTests
                 Check(!Field<RoundButton>(form, "install").Enabled, "install disabled without game");
                 Call(form, "SelectGame", @"D:\Games\ExampleGame\game.exe");
                 Check(Field<RoundButton>(form, "verify").Enabled && !Field<RoundButton>(form, "install").Enabled, "manual selection requires separate exit check");
-                form.DisplayUpdate(new GuiUpdate { Version = "2.0.1" });
+                form.DisplayUpdate(new GuiUpdate { Version = "2.1.1" });
                 var update = Field<RoundButton>(form, "update");
-                Check(update.Dot && update.Text.Contains("2.0.1"), "bottom-right red update light");
+                Check(update.Dot && update.Text.Contains("2.1.1"), "bottom-right red update light");
                 using (var bitmap = new Bitmap(form.Width, form.Height))
                 {
                     form.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));

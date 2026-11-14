@@ -38,7 +38,7 @@ namespace DlssgManager
     public sealed class GuiUpdater : IDisposable
     {
         public const string Repository = "https://github.com/BerryFuwawa/dlssg-install-manager";
-        public const string Current = "2.0.0";
+        public const string Current = "2.1.0";
         readonly HttpClient http;
         public GuiUpdater() : this(new HttpClientHandler()) { }
         public GuiUpdater(HttpMessageHandler handler)

@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using DlssgManager;
 #if NEXT
-[assembly: AssemblyVersion("2.0.1.0")]
+[assembly: AssemblyVersion("2.1.0.0")]
 #else
 [assembly: AssemblyVersion("2.0.0.0")]
 #endif
@@ -14,7 +14,7 @@ static class Fixture
         try
         {
 #if NEXT
-            File.WriteAllText(Assembly.GetExecutingAssembly().Location + ".updated-marker", "2.0.1");
+            File.WriteAllText(Assembly.GetExecutingAssembly().Location + ".updated-marker", "2.1.0");
 #else
             GuiUpdater.StartReplacement(args[0]).GetAwaiter().GetResult();
 #endif

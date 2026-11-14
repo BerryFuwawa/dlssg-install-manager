@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using DlssgManager;
 static class LiveChecks
@@ -15,11 +16,27 @@ static class LiveChecks
             {
                 var installer = new Installer(upstream, new ProcessProbe(), root);
                 var first = installer.CheckCacheAsync(Console.WriteLine, CancellationToken.None).GetAwaiter().GetResult();
-                Console.WriteLine("LIVE PACKAGE " + first.Version + " " + first.Commit + " " + first.DllSize + " " + first.DllHash);
+                Console.WriteLine("LIVE PACKAGE " + first.Version + " " + first.Commit + " files=" + first.Files.Count + " bytes=" + first.Files.Sum(file => file.Size));
                 var cached = installer.CheckCacheAsync(Console.WriteLine, CancellationToken.None).GetAwaiter().GetResult();
                 if (cached.Source != "缓存命中") throw new Exception("Live cache reuse failed");
+                string game = Path.Combine(root, "isolated-game"); Directory.CreateDirectory(game);
+                string exe = Path.Combine(game, "__dlssg_fixture_game__.exe"); File.WriteAllText(exe, "isolated fixture");
+                File.WriteAllText(Path.Combine(game, "version.dll"), "original plugin");
+                string obsolete = Path.Combine(game, "dlssg_sm86", "obsolete.txt");
+                Directory.CreateDirectory(Path.GetDirectoryName(obsolete)); File.WriteAllText(obsolete, "original payload");
+                var backup = installer.InstallAsync(exe, Console.WriteLine, CancellationToken.None).GetAwaiter().GetResult();
+                if (File.Exists(obsolete) || first.Files.Where(file => Data.Managed(file.Name)).Any(file => Data.Hash(Data.FileAt(game, file.Name)) != file.Hash)) throw new Exception("Live full deployment mismatch");
+                string log = Path.Combine(game, "dlssg_sm86", "logs", "session.log");
+                Directory.CreateDirectory(Path.GetDirectoryName(log)); File.WriteAllText(log, "retained session");
+                installer.SetLogLevel(exe, 2, Console.WriteLine);
+                var config = installer.Backups(exe).First(record => record.State == "已修改日志等级");
+                if (config.Files.Count != 1) throw new Exception("Configuration backup scope mismatch");
+                installer.Restore(config, Console.WriteLine);
+                installer.Restore(backup, Console.WriteLine);
+                if (File.ReadAllText(Path.Combine(game, "version.dll")) != "original plugin" || File.Exists(Path.Combine(game, "dlssg_sm86.ini")) || File.ReadAllText(obsolete) != "original payload" || File.ReadAllText(log) != "retained session") throw new Exception("Live restore mismatch");
+                Console.WriteLine("LIVE complete deployment, INI-only backup, restore and log preservation passed.");
             }
-            for (int i = 1; i <= 3; i++)
+            for (int i = 1; args.Length > 1 && args[1] == "--gpu" && i <= 3; i++)
             {
                 int samples = 0; double previous = 0; var clock = Stopwatch.StartNew();
                 try

@@ -166,7 +166,7 @@ namespace DlssgManager
             verify = Button("检查游戏已退出", 22, 132, 180, async delegate { await VerifyExit(); }, true); verify.Enabled = false;
             install = Button("备份并安装 / 更新", 214, 132, 228, async delegate { await Install(); }, false); install.Enabled = false;
             deployment.Controls.AddRange(new Control[] { verify, install });
-            tips.SetToolTip(selected, "此目录会收到 version.dll 和官方 dlssg_sm86.ini；原文件会先集中备份。");
+            tips.SetToolTip(selected, "此目录会收到 version.dll、官方 INI 和 dlssg_sm86 完整载荷；原文件先集中备份，日志保留。");
         }
         DataGridView Grid()
         {
@@ -201,21 +201,21 @@ namespace DlssgManager
             LabelAt(card, "一个缓存，服务多个游戏", 22, 18, 730, 37, 17, Theme.Ink, true);
             LabelAt(card, "每次安装检查上游提交；未变化就复用缓存。断网时只允许使用校验通过的缓存。", 22, 62, 800, 45, 9.5f, Theme.Muted, false);
             cacheState = LabelAt(card, "缓存尚未检查", 22, 119, 780, 38, 11, Theme.Accent, true);
-            cacheCheck = Button("检查 DLL 缓存更新", 22, 173, 205, async delegate { await Run(async token => { await Task.Run(() => installer.CheckCacheAsync(Log, token)); await RefreshCache(); }); }, false);
+            cacheCheck = Button("检查完整包缓存更新", 22, 173, 205, async delegate { await Run(async token => { await Task.Run(() => installer.CheckCacheAsync(Log, token, Downloading)); await RefreshCache(); }); }, false);
             card.Controls.Add(cacheCheck);
             card.Controls.Add(Button("打开缓存与备份目录", 240, 173, 220, delegate { Directory.CreateDirectory(installer.Root); Open(installer.Root); }, true));
             LabelAt(card, "显卡信息", 22, 237, 700, 30, 12, Theme.Ink, true);
-            graphics = LabelAt(card, "正在读取显卡信息……", 22, 274, 790, 65, 10, Theme.Muted, false);
+            graphics = LabelAt(card, "正在读取显卡信息……", 22, 274, 790, 95, 10, Theme.Muted, false);
             autoUpdate = new CheckBox { Text = "启动软件时自动检查 GUI 新版本", Checked = settings.CheckGuiUpdates, AutoSize = true,
-                Location = new Point(24, 360), BackColor = Color.White, ForeColor = Theme.Ink };
+                Location = new Point(24, 390), BackColor = Color.White, ForeColor = Theme.Ink };
             autoUpdate.CheckedChanged += delegate {
                 settings.CheckGuiUpdates = autoUpdate.Checked;
                 try { Directory.CreateDirectory(installer.Root); Data.Json(Path.Combine(installer.Root, "settings.json"), settings); }
                 catch (Exception e) { Log("设置保存失败：" + e.Message); }
             };
             card.Controls.Add(autoUpdate);
-            LabelAt(card, "检测到新版时，右下角显示红灯。点击后确认下载，校验成功再退出并更新。", 22, 397, 800, 44, 9.5f, Theme.Muted, false);
-            card.Controls.Add(Button("GUI 项目与说明 ↗", 22, 465, 205, delegate { Open(GuiUpdater.Repository); }, true));
+            LabelAt(card, "检测到新版时，右下角显示红灯。点击后确认下载，校验成功再退出并更新。", 22, 427, 800, 44, 9.5f, Theme.Muted, false);
+            card.Controls.Add(Button("GUI 项目与说明 ↗", 22, 495, 205, delegate { Open(GuiUpdater.Repository); }, true));
             tips.SetToolTip(cacheState, installer.CacheRoot);
         }
         void BuildLogs()
@@ -250,12 +250,12 @@ namespace DlssgManager
             level.Items.AddRange(new object[] { "0 · 关闭日志", "1 · 仅错误（推荐）", "2 · 配置与能力信息", "3 · 内核与调用跟踪" }); level.SelectedIndex = 1; card.Controls.Add(level);
             card.Controls.Add(Button("备份并应用日志等级", 296, 177, 220, async delegate {
                 if (game == null) { MessageBox.Show(this, "请先选择游戏程序。"); return; }
-                if (MessageBox.Show(this, "修改目标：" + game + "\r\n日志等级：" + level.SelectedIndex + "\r\n将先备份原 DLL 和 INI，是否继续？", "确认配置变更", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
+                if (MessageBox.Show(this, "修改目标：" + game + "\r\n日志等级：" + level.SelectedIndex + "\r\n仅备份并修改 INI，是否继续？", "确认配置变更", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
                 int selectedLevel = level.SelectedIndex;
                 await Run(async token => { await Task.Run(() => installer.SetLogLevel(game, selectedLevel, Log)); });
             }, true));
             statusBox = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BorderStyle = BorderStyle.None, BackColor = Color.White,
-                ForeColor = Theme.Muted, Font = Theme.Font(9.5f, false), Text = "尚未读取状态。\r\n\r\n本工具只管理 version.dll 和 dlssg_sm86.ini，不检测或修改游戏反作弊。" };
+                ForeColor = Theme.Muted, Font = Theme.Font(9.5f, false), Text = "尚未读取状态。\r\n\r\n管理范围：version.dll、dlssg_sm86.ini 和 dlssg_sm86 配套载荷（日志保留）。" };
             statusBox.SetBounds(22, 246, 790, 280); statusBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right; card.Controls.Add(statusBox);
             Responsive(card, delegate { statusBox.Width = card.Width - Px(44); statusBox.Height = Math.Max(Px(80), card.Height - Px(268)); });
         }
@@ -307,14 +307,16 @@ namespace DlssgManager
         async Task Install()
         {
             if (!exitChecked || game == null) return;
-            string warning = "目标程序：\r\n" + game + "\r\n\r\n将备份并替换：version.dll、dlssg_sm86.ini。\r\n备份位置：" + installer.BackupRoot +
+            string[] others = new[] { "winmm.dll", "dbghelp.dll", "dinput8.dll", "dxgi.dll", "d3d12.dll" }.Where(name => File.Exists(Path.Combine(Path.GetDirectoryName(game), name))).ToArray();
+            string warning = "目标程序：\r\n" + game + "\r\n\r\n将备份并更新：version.dll、官方 INI、dlssg_sm86 完整载荷。旧载荷会替换，logs 日志保留。\r\n备份位置：" + installer.BackupRoot +
+                (others.Length == 0 ? "" : "\r\n\r\n发现其他代理名称（不会自动删除）：" + String.Join("、", others) + "。请确认不是残留的 DLSSG 代理，并核对其他模组兼容性后再继续。") +
                 "\r\n\r\n反作弊/在线游戏可能封禁或禁止 DLL 注入。本工具不能确认游戏兼容性，也不绕过反作弊。请仅用于允许修改的游戏，并自行确认风险。\r\n\r\n是否继续安装？";
             if (MessageBox.Show(this, warning, "最终确认 · 备份后安装", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
             await Run(async token => {
-                var b = await Task.Run(() => installer.InstallAsync(game, Log, token));
+                var b = await Task.Run(() => installer.InstallAsync(game, Log, token, Downloading));
                 gameState.Text = "安装完成 · 上游 " + b.Version + " · 原文件已集中备份"; gameState.ForeColor = Color.FromArgb(30, 139, 104);
                 await RefreshCache();
-                MessageBox.Show(this, "DLL 和官方 INI 安装成功，备份已校验。\r\n请根据上游说明在游戏内启用帧生成。\r\n\r\n" + b.Directory, "安装完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "完整包已部署，备份已保存。\r\n请在游戏内验证帧生成；40 系为实验性支持，不保证倍率或性能收益。\r\n\r\n" + b.Directory, "部署完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
             });
         }
         async Task RefreshCache()
@@ -340,7 +342,7 @@ namespace DlssgManager
             if (backups.SelectedRows.Count == 0) { MessageBox.Show(this, "请先选择一条备份记录。"); return; }
             var b = backups.SelectedRows[0].Tag as Backup; if (b == null) return;
             if (MessageBox.Show(this, "请完全退出游戏。\r\n\r\n恢复目标：" + b.TargetDirectory + "\r\n备份时间：" + b.CreatedAt +
-                "\r\n\r\n只恢复 version.dll 与 dlssg_sm86.ini。继续？", "确认恢复", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
+                "\r\n\r\n按所选清单恢复 " + b.Files.Count + " 个文件，运行日志保留。旧版记录仅恢复两个根目录文件。继续？", "确认恢复", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
             await Run(async token => { await Task.Run(() => installer.Restore(b, Log)); MessageBox.Show(this, "恢复完成，恢复前文件快照已保留。", "完成"); });
         }
         async Task Run(Func<CancellationToken, Task> action)
@@ -398,6 +400,13 @@ namespace DlssgManager
         {
             if (IsDisposed || !IsHandleCreated) return;
             if (InvokeRequired) BeginInvoke(action); else action();
+        }
+        void Downloading(DownloadProgress value)
+        {
+            Ui(delegate {
+                activity.Text = String.Format("下载 {0}/{1} · {2:F1}/{3:F1} MiB", value.FileNumber, value.FileCount, value.CompletedBytes / 1048576.0, value.TotalBytes / 1048576.0);
+                tips.SetToolTip(activity, value.File);
+            });
         }
         void Log(string message)
         {

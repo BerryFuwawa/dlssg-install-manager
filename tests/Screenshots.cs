@@ -39,7 +39,7 @@ static class Screenshots
                 form.Opacity = 0;
                 form.Show(); Application.DoEvents();
                 form.ApplyDpiForTest(144, new Size(3840, 2400));
-                Field<Label>(form, "graphics").Text = "文档预览模式 · 正常启动时会读取实际显卡信息。";
+                Field<Label>(form, "graphics").Text = "文档预览 · NVIDIA GeForce RTX 4070 Ti SUPER\r\n" + ProcessProbe.GraphicsSupport("GeForce RTX 4070 Ti SUPER") + "\r\n上游要求 NVIDIA R580 或更新驱动。";
                 Field<Label>(form, "cacheState").Text = "首次使用示意 · 尚未建立缓存";
                 var navigation = Field<List<RoundButton>>(form, "navigation");
                 string[] names = { "01-install.png", "02-backups.png", "03-cache.png", "04-settings.png", "05-logs.png" };
@@ -48,7 +48,7 @@ static class Screenshots
                     navigation[i].PerformClick(); Save(form, args[0], names[i]);
                 }
                 navigation[0].PerformClick();
-                form.DisplayUpdate(new GuiUpdate { Version = "2.0.1" });
+                form.DisplayUpdate(new GuiUpdate { Version = "2.1.1" });
                 Save(form, args[0], "06-update-demo.png");
                 form.Close();
             }
