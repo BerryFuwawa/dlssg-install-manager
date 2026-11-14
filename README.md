@@ -4,7 +4,7 @@ Windows 中文 DLSS 帧生成安装管理器。选择游戏 → 确认退出 →
 
 [正式版下载](https://github.com/BerryFuwawa/dlssg-install-manager/releases/latest) · **[新手教程](docs/新手教程.md)** · [使用说明](docs/使用说明.md) · [常见问题](docs/常见问题.md) · [界面截图](docs/界面截图.md)
 
-当前开发版本 **v2.1.0**：适配上游 0.4.x 完整包，RTX 40 系标为实验性支持。正式发布前，下载页仍可能指向 v2.0.0；v2.0.0 不适用于安装当前上游完整包。
+当前正式版本 **v2.1.0**：适配上游 0.4.x 完整包，RTX 40 系标为实验性支持。使用 v2.0.0 的用户请先更新管理器，再安装当前上游完整包。
 
 ![安装与更新](docs/screenshots/01-install.png)
 
